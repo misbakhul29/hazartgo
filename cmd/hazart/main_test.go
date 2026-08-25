@@ -52,3 +52,26 @@ func TestCapitalize(t *testing.T) {
 		t.Errorf("capitalize('') failed")
 	}
 }
+
+func TestIsNewerVersion(t *testing.T) {
+	tests := []struct {
+		latest   string
+		current  string
+		expected bool
+	}{
+		{"v1.3.0", "v1.2.0", true},
+		{"v1.2.1", "v1.2.0", true},
+		{"v2.0.0", "v1.2.0", true},
+		{"v1.2.0", "v1.2.0", false},
+		{"v1.1.0", "v1.2.0", false},
+		{"v0.0.0-20260825090345-53844ebf15b4", "v1.2.0", false},
+		{"", "v1.2.0", false},
+	}
+
+	for _, tt := range tests {
+		got := isNewerVersion(tt.latest, tt.current)
+		if got != tt.expected {
+			t.Errorf("isNewerVersion(%q, %q) = %v; want %v", tt.latest, tt.current, got, tt.expected)
+		}
+	}
+}

@@ -1,22 +1,34 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
-const cliVersion = "v1.1.1"
+const cliVersion = "v1.2.0"
 
 func main() {
 	if len(os.Args) < 2 {
+		checkLatestVersion()
 		printUsage()
 		return
 	}
 
 	command := os.Args[1]
+
+	if command == "update" {
+		updateHazart()
+		return
+	}
+
+	checkLatestVersion()
 
 	switch command {
 	case "init":
@@ -73,6 +85,101 @@ func main() {
 	}
 }
 
+func checkLatestVersion() {
+	latest := fetchLatestRemoteVersion()
+	if isNewerVersion(latest, cliVersion) {
+		fmt.Printf("💡 Notice: A new HazartGo release (%s) is available (Current installed: %s).\n", latest, cliVersion)
+		fmt.Println("👉 Run 'hazart update' to upgrade HazartGo CLI & project library.")
+		fmt.Println()
+	}
+}
+
+func isNewerVersion(latest, current string) bool {
+	if latest == "" || strings.HasPrefix(latest, "v0.0.0-") {
+		return false
+	}
+	latestClean := strings.TrimPrefix(latest, "v")
+	currentClean := strings.TrimPrefix(current, "v")
+
+	lParts := strings.Split(latestClean, ".")
+	cParts := strings.Split(currentClean, ".")
+
+	if len(lParts) < 3 || len(cParts) < 3 {
+		return false
+	}
+
+	for i := 0; i < 3; i++ {
+		var lNum, cNum int
+		fmt.Sscanf(lParts[i], "%d", &lNum)
+		fmt.Sscanf(cParts[i], "%d", &cNum)
+		if lNum > cNum {
+			return true
+		} else if lNum < cNum {
+			return false
+		}
+	}
+	return false
+}
+
+func fetchLatestRemoteVersion() string {
+	client := http.Client{
+		Timeout: 1500 * time.Millisecond,
+	}
+	resp, err := client.Get("https://proxy.golang.org/github.com/misbakhul29/hazartgo/@latest")
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return ""
+	}
+
+	var data struct {
+		Version string `json:"Version"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return ""
+	}
+
+	return data.Version
+}
+
+func updateHazart() {
+	fmt.Println("⚡ HazartGo Auto-Updater")
+	fmt.Printf("🔍 Checking for updates... (Current version: %s)\n", cliVersion)
+
+	latest := fetchLatestRemoteVersion()
+	if latest != "" && latest != cliVersion {
+		fmt.Printf("🎉 New version available: %s (Installed: %s)\n\n", latest, cliVersion)
+	} else if latest != "" {
+		fmt.Printf("✅ You are already using the latest CLI version (%s)!\n\n", cliVersion)
+	}
+
+	fmt.Println("📦 Upgrading HazartGo CLI tool (go install github.com/misbakhul29/hazartgo/cmd/hazart@latest)...")
+	cmdCLI := exec.Command("go", "install", "github.com/misbakhul29/hazartgo/cmd/hazart@latest")
+	cmdCLI.Stdout = os.Stdout
+	cmdCLI.Stderr = os.Stderr
+	if err := cmdCLI.Run(); err != nil {
+		fmt.Printf("❌ Failed to upgrade HazartGo CLI tool: %v\n", err)
+	} else {
+		fmt.Println("✅ HazartGo CLI tool successfully upgraded to latest version!")
+	}
+
+	if _, err := os.Stat("go.mod"); err == nil {
+		fmt.Println("\n📦 Upgrading hazartgo library in current project (go get -u github.com/misbakhul29/hazartgo@latest)...")
+		cmdLib := exec.Command("go", "get", "-u", "github.com/misbakhul29/hazartgo@latest")
+		cmdLib.Stdout = os.Stdout
+		cmdLib.Stderr = os.Stderr
+		if err := cmdLib.Run(); err == nil {
+			exec.Command("go", "mod", "tidy").Run()
+			fmt.Println("✅ HazartGo library in current project successfully upgraded!")
+		} else {
+			fmt.Printf("❌ Failed to upgrade hazartgo library in current project: %v\n", err)
+		}
+	}
+}
+
 func printUsage() {
 	fmt.Printf(`⚡ HazartGo CLI Scaffolding Tool (%s)
 
@@ -87,6 +194,7 @@ Commands:
   make:repository <Name>             Generate a new Repository interface & memory store
   make:middleware <Name>             Generate a new custom Middleware handler
   make:auth                          Scaffold JWT Authentication Controller
+  update                             Automatically upgrade HazartGo CLI & project library
 
 Aliases:
   controller, resource, model, repository, middleware, auth

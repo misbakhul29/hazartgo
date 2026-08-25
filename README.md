@@ -199,6 +199,7 @@ go install github.com/misbakhul29/hazartgo/cmd/hazart@latest
 | `hazart make:repository <Name>`| `repository` | Generate Repository interface & thread-safe in-memory store |
 | `hazart make:middleware <Name>`| `middleware` | Generate kustom Middleware handler function |
 | `hazart make:auth` | `auth` | Scaffold AuthController lengkap berbasis `hazart/jwt` (Login & Token Generation) |
+| `hazart update` | - | Otomatis meng-upgrade versi Hazart CLI & library `hazartgo` pada project ke versi `@latest` |
 | `hazart version` | `-v`, `--version` | Menampilkan versi Hazart CLI yang terinstall |
 
 ### Contoh Penggunaan CLI:
@@ -211,7 +212,12 @@ go mod tidy
 go run main.go
 ```
 
-#### 2. Generate Resource Kompleks (Model + Repository + AutoCRUD Controller)
+#### 2. Auto Upgrade Hazart CLI & Library
+```bash
+hazart update
+```
+
+#### 3. Generate Resource Kompleks (Model + Repository + AutoCRUD Controller)
 ```bash
 hazart make:resource Product --group "/api/v1"
 # Menghasilkan:
