@@ -63,7 +63,7 @@ func (c *Context) String(code int, format string, values ...any) error {
 	c.StatusCode = code
 	c.SetHeader("Content-Type", "text/plain")
 	c.Writer.WriteHeader(code)
-	_, err := fmt.Fprintf(c.Writer, format, values)
+	_, err := fmt.Fprintf(c.Writer, format, values...)
 	return err
 }
 
