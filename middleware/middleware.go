@@ -129,3 +129,77 @@ func BearerAuth(validator func(token string) bool) hazart.MiddlewareFunc {
 		}
 	}
 }
+
+// RequireRole checks if current context user has one of the allowed roles
+func RequireRole(allowedRoles ...string) hazart.MiddlewareFunc {
+	return func(next hazart.HandlerFunc) hazart.HandlerFunc {
+		return func(ctx *hazart.Context) {
+			val, ok := ctx.Get("user_roles")
+			if !ok {
+				ctx.JSON(http.StatusForbidden, hazart.Forbidden("Access forbidden: User roles context not found"))
+				return
+			}
+
+			userRoles, isSlice := val.([]string)
+			if !isSlice {
+				if roleStr, isStr := val.(string); isStr {
+					userRoles = []string{roleStr}
+				}
+			}
+
+			hasAccess := false
+			for _, role := range userRoles {
+				for _, allowed := range allowedRoles {
+					if role == allowed {
+						hasAccess = true
+						break
+					}
+				}
+			}
+
+			if !hasAccess {
+				ctx.JSON(http.StatusForbidden, hazart.Forbidden("Access forbidden: Insufficient role permissions"))
+				return
+			}
+
+			next(ctx)
+		}
+	}
+}
+
+// RequirePermission checks if current context user has all or any required permissions
+func RequirePermission(requiredPermissions ...string) hazart.MiddlewareFunc {
+	return func(next hazart.HandlerFunc) hazart.HandlerFunc {
+		return func(ctx *hazart.Context) {
+			val, ok := ctx.Get("user_permissions")
+			if !ok {
+				ctx.JSON(http.StatusForbidden, hazart.Forbidden("Access forbidden: User permissions context not found"))
+				return
+			}
+
+			userPerms, isSlice := val.([]string)
+			if !isSlice {
+				if permStr, isStr := val.(string); isStr {
+					userPerms = []string{permStr}
+				}
+			}
+
+			hasAccess := false
+			for _, perm := range userPerms {
+				for _, req := range requiredPermissions {
+					if perm == req {
+						hasAccess = true
+						break
+					}
+				}
+			}
+
+			if !hasAccess {
+				ctx.JSON(http.StatusForbidden, hazart.Forbidden("Access forbidden: Missing required permission"))
+				return
+			}
+
+			next(ctx)
+		}
+	}
+}

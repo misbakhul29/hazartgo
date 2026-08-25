@@ -22,7 +22,20 @@ type User struct {
 type UserController struct{}
 
 func (uc *UserController) RegisterRoutes(g *hazart.Group) {
-	// Otomatis membuat 5 endpoint CRUD lengkap (GET /users, GET /users/:id, POST /users, PUT /users/:id, DELETE /users/:id)
+	// 1. Authenticate & extract User / Roles into Context
+	g.Use(func(next hazart.HandlerFunc) hazart.HandlerFunc {
+		return func(ctx *hazart.Context) {
+			// Simulasi autentikasi: simpan role user ke context
+			ctx.Set("user_roles", []string{"admin"})
+			ctx.Set("user_permissions", []string{"users:read", "users:write"})
+			next(ctx)
+		}
+	})
+
+	// 2. Proteksi seluruh endpoint di controller ini hanya untuk role "admin" atau "superadmin"
+	g.Use(middleware.RequireRole("admin", "superadmin"))
+
+	// Otomatis membuat 5 endpoint CRUD lengkap yang dilindungi role "admin"
 	crud.AutoCRUD[User](g, "")
 }
 

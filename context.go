@@ -17,6 +17,7 @@ type Context struct {
 	Method     string
 	Params     map[string]string
 	StatusCode int
+	store      map[string]any
 }
 
 func newContext(w http.ResponseWriter, r *http.Request) *Context {
@@ -26,6 +27,7 @@ func newContext(w http.ResponseWriter, r *http.Request) *Context {
 		Path:    r.URL.Path,
 		Method:  r.Method,
 		Params:  make(map[string]string),
+		store:   make(map[string]any),
 	}
 }
 
@@ -42,6 +44,23 @@ func (c *Context) Query(key string) string {
 // SetHeader sets a response HTTP header key-value.
 func (c *Context) SetHeader(key string, value string) {
 	c.Writer.Header().Set(key, value)
+}
+
+// Set stores a key-value pair in context store
+func (c *Context) Set(key string, val any) {
+	if c.store == nil {
+		c.store = make(map[string]any)
+	}
+	c.store[key] = val
+}
+
+// Get retrieves a stored value from context store
+func (c *Context) Get(key string) (any, bool) {
+	if c.store == nil {
+		return nil, false
+	}
+	val, ok := c.store[key]
+	return val, ok
 }
 
 // Status sets HTTP response status code.
