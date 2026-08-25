@@ -37,8 +37,12 @@ type App struct {
 
 // Config defines application configuration
 type Config struct {
-	Title   string
-	Version string
+	Title          string
+	Description    string
+	TermsOfService string
+	Contact        *openapi.Contact
+	License        *openapi.License
+	Version        string
 }
 
 // New creates a new HazartGo application
@@ -55,6 +59,11 @@ func New(cfg Config) *App {
 		OpenAPI:     openapi.NewGenerator(cfg.Title, cfg.Version),
 		middlewares: make([]MiddlewareFunc, 0),
 	}
+
+	app.OpenAPI.Spec.Info.Description = cfg.Description
+	app.OpenAPI.Spec.Info.TermsOfService = cfg.TermsOfService
+	app.OpenAPI.Spec.Info.Contact = cfg.Contact
+	app.OpenAPI.Spec.Info.License = cfg.License
 
 	// Register Swagger / Docs routes
 	app.registerDocsRoutes()

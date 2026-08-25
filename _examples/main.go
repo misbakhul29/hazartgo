@@ -28,7 +28,18 @@ func (uc *UserController) RegisterRoutes(g *hazart.Group) {
 
 func main() {
 	app := hazart.New(hazart.Config{
-		Title:   "HazartGo Showcase API",
+		Title:          "HazartGo Showcase API",
+		Description:    "High Performance & Developer-Friendly Go REST API Framework with Automatic OpenAPI Specs & Validation",
+		TermsOfService: "https://hazartgo.dev/terms",
+		Contact: &openapi.Contact{
+			Name:  "HazartGo Support",
+			URL:   "https://github.com/misbakhul29/hazartgo",
+			Email: "support@hazartgo.dev",
+		},
+		License: &openapi.License{
+			Name: "MIT License",
+			URL:  "https://opensource.org/licenses/MIT",
+		},
 		Version: "1.0.0",
 	})
 
