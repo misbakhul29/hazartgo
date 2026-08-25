@@ -101,8 +101,15 @@ func main() {
 	fmt.Printf("✅ Project '%s' successfully initialized!\n", projectName)
 }
 
+func capitalize(s string) string {
+	if s == "" {
+		return ""
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
+}
+
 func makeController(name string, group string) {
-	name = strings.Title(name)
+	name = capitalize(name)
 	filename := fmt.Sprintf("controllers/%s_controller.go", strings.ToLower(name))
 
 	content := fmt.Sprintf(`package controllers
@@ -139,7 +146,7 @@ func (c *%sController) Ping(ctx *hazart.Context, req *struct{}) (*PingRes, error
 }
 
 func makeResource(name string, group string) {
-	name = strings.Title(name)
+	name = capitalize(name)
 	modelFile := fmt.Sprintf("models/%s.go", strings.ToLower(name))
 	controllerFile := fmt.Sprintf("controllers/%s_controller.go", strings.ToLower(name))
 
