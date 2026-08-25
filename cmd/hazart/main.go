@@ -150,10 +150,10 @@ func updateHazart() {
 	fmt.Printf("🔍 Checking for updates... (Current version: %s)\n", cliVersion)
 
 	latest := fetchLatestRemoteVersion()
-	if latest != "" && latest != cliVersion {
+	if isNewerVersion(latest, cliVersion) {
 		fmt.Printf("🎉 New version available: %s (Installed: %s)\n\n", latest, cliVersion)
 	} else if latest != "" {
-		fmt.Printf("✅ You are already using the latest CLI version (%s)!\n\n", cliVersion)
+		fmt.Printf("✅ You are using the latest release (%s)!\n\n", cliVersion)
 	}
 
 	fmt.Println("📦 Upgrading HazartGo CLI tool (go install github.com/misbakhul29/hazartgo/cmd/hazart@latest)...")
@@ -167,15 +167,18 @@ func updateHazart() {
 	}
 
 	if _, err := os.Stat("go.mod"); err == nil {
-		fmt.Println("\n📦 Upgrading hazartgo library in current project (go get -u github.com/misbakhul29/hazartgo@latest)...")
-		cmdLib := exec.Command("go", "get", "-u", "github.com/misbakhul29/hazartgo@latest")
-		cmdLib.Stdout = os.Stdout
-		cmdLib.Stderr = os.Stderr
-		if err := cmdLib.Run(); err == nil {
-			exec.Command("go", "mod", "tidy").Run()
-			fmt.Println("✅ HazartGo library in current project successfully upgraded!")
-		} else {
-			fmt.Printf("❌ Failed to upgrade hazartgo library in current project: %v\n", err)
+		modName := getModuleName()
+		if modName != "github.com/misbakhul29/hazartgo" {
+			fmt.Println("\n📦 Upgrading hazartgo library in current project (go get -u github.com/misbakhul29/hazartgo@latest)...")
+			cmdLib := exec.Command("go", "get", "-u", "github.com/misbakhul29/hazartgo@latest")
+			cmdLib.Stdout = os.Stdout
+			cmdLib.Stderr = os.Stderr
+			if err := cmdLib.Run(); err == nil {
+				exec.Command("go", "mod", "tidy").Run()
+				fmt.Println("✅ HazartGo library in current project successfully upgraded!")
+			} else {
+				fmt.Printf("❌ Failed to upgrade hazartgo library in current project: %v\n", err)
+			}
 		}
 	}
 }
