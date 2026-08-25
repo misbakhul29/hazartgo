@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const cliVersion = "v1.2.1"
+const cliVersion = "v1.2.2"
 
 func main() {
 	if len(os.Args) < 2 {
