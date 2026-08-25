@@ -1,0 +1,32 @@
+# Binaries & Executables
+*.exe
+*.exe;
+*.dll
+*.so
+*.dylib
+bin/
+hazart
+
+# Test Binaries & Coverage
+*.test
+*.out
+coverage.txt
+
+# Go Vendor & Dependency Folders
+vendor/
+
+# IDE & Editor Settings
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Temporary Files & Environment
+*.env
+*.log
+tmp/
