@@ -109,11 +109,15 @@ func makeController(name string, group string) {
 
 import (
 	hazart "github.com/misbakhul29/hazartgo"
+	"github.com/misbakhul29/hazartgo/middleware"
 )
 
 type %sController struct{}
 
 func (c *%sController) RegisterRoutes(g *hazart.Group) {
+	// Example Role Authorization Middleware:
+	// g.Use(middleware.RequireRole("admin"))
+
 	hazart.GroupGet(g, "/ping", c.Ping, hazart.RouteMeta{
 		Summary: "Ping %s",
 		Tags:    []string{"%s"},
@@ -152,12 +156,16 @@ type %s struct {
 import (
 	hazart "github.com/misbakhul29/hazartgo"
 	"github.com/misbakhul29/hazartgo/crud"
+	"github.com/misbakhul29/hazartgo/middleware"
 	"%s/models"
 )
 
 type %sController struct{}
 
 func (c *%sController) RegisterRoutes(g *hazart.Group) {
+	// Optional RBAC Middleware:
+	// g.Use(middleware.RequireRole("admin"))
+
 	// Auto CRUD endpoints generated for %s Model!
 	crud.AutoCRUD[models.%s](g, "/%ss")
 }

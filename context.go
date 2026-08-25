@@ -77,6 +77,31 @@ func (c *Context) JSON(code int, v any) error {
 	return json.NewEncoder(c.Writer).Encode(v)
 }
 
+// Success sends a standardized JSON success response wrapper
+func (c *Context) Success(code int, data any, message ...string) error {
+	msg := "Success"
+	if len(message) > 0 {
+		msg = message[0]
+	}
+	return c.JSON(code, Map{
+		"success": true,
+		"message": msg,
+		"data":    data,
+	})
+}
+
+// Error sends a standardized JSON error response wrapper
+func (c *Context) Error(code int, message string, details ...any) error {
+	res := Map{
+		"success": false,
+		"error":   message,
+	}
+	if len(details) > 0 {
+		res["details"] = details[0]
+	}
+	return c.JSON(code, res)
+}
+
 // String sends a plain text response.
 func (c *Context) String(code int, format string, values ...any) error {
 	c.StatusCode = code
