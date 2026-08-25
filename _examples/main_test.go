@@ -8,6 +8,9 @@ import (
 	"testing"
 
 	hazart "github.com/misbakhul29/hazartgo"
+	"github.com/misbakhul29/hazartgo/_examples/controllers"
+	"github.com/misbakhul29/hazartgo/_examples/models"
+	"github.com/misbakhul29/hazartgo/_examples/repositories"
 	"github.com/misbakhul29/hazartgo/crud"
 	"github.com/misbakhul29/hazartgo/middleware"
 	"github.com/misbakhul29/hazartgo/openapi"
@@ -40,7 +43,10 @@ func setupExampleApp() *hazart.App {
 		BearerFormat: "JWT",
 	})
 
-	app.MountController("/api/v1/users", &UserController{})
+	userRepo := repositories.NewUserMemoryRepository()
+	app.MountController("/api/v1/users", controllers.NewUserController(userRepo))
+	app.MountController("/api/v1/products", controllers.NewProductController())
+
 	return app
 }
 
@@ -84,7 +90,7 @@ func TestMainExample_FullWorkflow(t *testing.T) {
 
 	// 2. Test POST /api/v1/users (Create User via AutoCRUD)
 	t.Run("POST /api/v1/users", func(t *testing.T) {
-		newUser := User{
+		newUser := models.User{
 			Name:  "Budi Santoso",
 			Email: "budi@example.com",
 		}
@@ -99,7 +105,7 @@ func TestMainExample_FullWorkflow(t *testing.T) {
 			t.Fatalf("expected status 200, got %d. Body: %s", rec.Code, rec.Body.String())
 		}
 
-		var res User
+		var res models.User
 		if err := json.Unmarshal(rec.Body.Bytes(), &res); err != nil {
 			t.Fatalf("failed to decode response: %v", err)
 		}
@@ -124,7 +130,7 @@ func TestMainExample_FullWorkflow(t *testing.T) {
 			t.Fatalf("expected status 200, got %d", rec.Code)
 		}
 
-		var users []User
+		var users []models.User
 		if err := json.Unmarshal(rec.Body.Bytes(), &users); err != nil {
 			t.Fatalf("failed to decode response: %v", err)
 		}
@@ -144,7 +150,7 @@ func TestMainExample_FullWorkflow(t *testing.T) {
 			t.Fatalf("expected status 200, got %d", rec.Code)
 		}
 
-		var u User
+		var u models.User
 		if err := json.Unmarshal(rec.Body.Bytes(), &u); err != nil {
 			t.Fatalf("failed to decode response: %v", err)
 		}
@@ -156,7 +162,7 @@ func TestMainExample_FullWorkflow(t *testing.T) {
 
 	// 5. Test PUT /api/v1/users/:id (Update)
 	t.Run("PUT /api/v1/users/:id", func(t *testing.T) {
-		updatedData := User{
+		updatedData := models.User{
 			ID:    createdID,
 			Name:  "Budi Santoso Updated",
 			Email: "budi.updated@example.com",
@@ -186,19 +192,18 @@ func TestMainExample_FullWorkflow(t *testing.T) {
 }
 
 func TestRequireRole_AccessForbidden(t *testing.T) {
-	// Custom test app where user role is "user" (not admin)
 	app := hazart.New(hazart.Config{Title: "Test RBAC"})
 
 	g := app.Group("/api/v1/protected")
 	g.Use(func(next hazart.HandlerFunc) hazart.HandlerFunc {
 		return func(ctx *hazart.Context) {
-			ctx.Set("user_roles", []string{"user"}) // Normal user role
+			ctx.Set("user_roles", []string{"user"})
 			next(ctx)
 		}
 	})
 	g.Use(middleware.RequireRole("admin"))
 
-	crud.AutoCRUD[User](g, "")
+	crud.AutoCRUD[models.User](g, "")
 
 	req := httptest.NewRequest("GET", "/api/v1/protected", nil)
 	rec := httptest.NewRecorder()
