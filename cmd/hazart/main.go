@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const cliVersion = "v1.1.0"
+const cliVersion = "v1.1.1"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -144,12 +144,16 @@ func initProject(projectName string) {
 	fmt.Printf("🚀 Initializing new HazartGo project '%s'...\n", projectName)
 
 	targetDir := projectName
+	moduleName := projectName
 	if projectName == "." {
 		cwd, err := os.Getwd()
 		if err == nil {
-			projectName = filepath.Base(cwd)
+			moduleName = filepath.Base(cwd)
+		} else {
+			moduleName = "app"
 		}
 	} else {
+		moduleName = filepath.Base(projectName)
 		os.MkdirAll(targetDir, 0755)
 	}
 
@@ -160,7 +164,7 @@ func initProject(projectName string) {
 
 	goModPath := filepath.Join(targetDir, "go.mod")
 	if _, err := os.Stat(goModPath); os.IsNotExist(err) {
-		goModContent := fmt.Sprintf("module %s\n\ngo 1.22\n\nrequire github.com/misbakhul29/hazartgo v0.0.0-latest\n", projectName)
+		goModContent := fmt.Sprintf("module %s\n\ngo 1.22\n", moduleName)
 		os.WriteFile(goModPath, []byte(goModContent), 0644)
 	}
 
@@ -261,7 +265,7 @@ func (r *itemMemoryRepository) Delete(ctx *hazart.Context, id string) error {
 	delete(r.items, id)
 	return nil
 }
-`, projectName)
+`, moduleName)
 	os.WriteFile(filepath.Join(targetDir, "repositories", "item_repository.go"), []byte(itemRepoContent), 0644)
 
 	itemControllerContent := fmt.Sprintf(`package controllers
@@ -286,7 +290,7 @@ func (c *ItemController) RegisterRoutes(g *hazart.Group) {
 	// Endpoints: GET /items, GET /items/:id, POST /items, PUT /items/:id, DELETE /items/:id
 	crud.AutoCRUD[models.Item](g, "", c.repo)
 }
-`, projectName, projectName)
+`, moduleName, moduleName)
 	os.WriteFile(filepath.Join(targetDir, "controllers", "item_controller.go"), []byte(itemControllerContent), 0644)
 
 	authMiddlewareContent := `package middleware
@@ -362,7 +366,7 @@ func main() {
 		log.Fatalf("Server error: %%v", err)
 	}
 }
-`, projectName, projectName, projectName)
+`, moduleName, moduleName, moduleName)
 
 	os.WriteFile(filepath.Join(targetDir, "main.go"), []byte(mainContent), 0644)
 
