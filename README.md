@@ -188,21 +188,50 @@ Instal CLI Tool HazartGo ke dalam sistem Go kamu:
 go install github.com/misbakhul29/hazartgo/cmd/hazart@latest
 ```
 
-### Perintah CLI:
+### Perintah CLI lengkap:
+
+| Perintah | Alias | Deskripsi |
+| :--- | :--- | :--- |
+| `hazart init <project_name>` | - | Inisialisasi project backend HazartGo baru lengkap (`models`, `repositories`, `controllers`, `middleware`, `go.mod`, `main.go`) |
+| `hazart make:resource <Name>` | `resource` | Generate 1 paket lengkap: **Model** + **Repository Layer** + **AutoCRUD Controller** |
+| `hazart make:controller <Name>` | `controller` | Generate Controller struct & route handlers dengan OpenAPI meta (`RouteMeta`) |
+| `hazart make:model <Name>` | `model` | Generate struct Model DB dengan tag JSON & OpenAPI spec |
+| `hazart make:repository <Name>`| `repository` | Generate Repository interface & thread-safe in-memory store |
+| `hazart make:middleware <Name>`| `middleware` | Generate kustom Middleware handler function |
+| `hazart make:auth` | `auth` | Scaffold AuthController lengkap berbasis `hazart/jwt` (Login & Token Generation) |
+| `hazart version` | `-v`, `--version` | Menampilkan versi Hazart CLI yang terinstall |
+
+### Contoh Penggunaan CLI:
 
 #### 1. Inisialisasi Project Baru
 ```bash
 hazart init my-backend-app
+cd my-backend-app
+go mod tidy
+go run main.go
 ```
 
-#### 2. Generate Controller Baru
-```bash
-hazart make:controller Auth --group "/api/v1"
-```
-
-#### 3. Generate Complete Resource (Model + AutoCRUD Controller)
+#### 2. Generate Resource Kompleks (Model + Repository + AutoCRUD Controller)
 ```bash
 hazart make:resource Product --group "/api/v1"
+# Menghasilkan:
+# 📄 models/product.go
+# 📄 repositories/product_repository.go
+# 📄 controllers/product_controller.go
+```
+
+#### 3. Generate Controller & Route Handler Manual
+```bash
+hazart make:controller Payment --group "/api/v1"
+# Menghasilkan:
+# 📄 controllers/payment_controller.go
+```
+
+#### 4. Scaffold JWT Authentication Flow
+```bash
+hazart make:auth
+# Menghasilkan:
+# 📄 controllers/auth_controller.go
 ```
 
 ---
@@ -210,3 +239,4 @@ hazart make:resource Product --group "/api/v1"
 ## 📄 License
 
 MIT License © 2026 Misbakhul Munir
+
