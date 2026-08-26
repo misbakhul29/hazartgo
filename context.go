@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/misbakhul29/hazartgo/binder"
 )
 
 // Map is a shortcut for map[string]any.
@@ -118,4 +120,13 @@ func (c *Context) HTML(code int, html string) error {
 	c.StatusCode = code
 	_, err := c.Writer.Write([]byte(html))
 	return err
+}
+
+// BindAndValidate is a generic helper to bind request params/body to struct T and validate via struct tags.
+func BindAndValidate[T any](c *Context) (*T, error) {
+	var target T
+	if err := binder.BindAndValidate(c.Request, c.Params, &target); err != nil {
+		return nil, err
+	}
+	return &target, nil
 }

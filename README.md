@@ -9,16 +9,19 @@ HazartGo menghadirkan **Zero-Boilerplate OpenAPI 3.1 & Swagger UI generation**, 
 ## ✨ Fitur Utama
 
 - 🏎️ **High Performance Routing**: Radix Tree Router berbasis `net/http` standar Go (tanpa ketergantungan router eksternal).
+- 🛡️ **Auto-Validation & Request Binding**: `hazart.BindAndValidate[T](ctx)` dengan tag `validate:"required,email,min=..."` via `validator/v10`.
 - 🧬 **Type-Safe Generic Handlers**: Tidak perlu lagi decode/encode JSON (`json.NewDecoder`) secara manual.
-- ⚡ **AutoCRUD Engine**: Cukup definisikan 1 struct Model DB, HazartGo otomatis membuatkan 5 REST API CRUD endpoints lengkap beserta OpenAPI spec-nya!
+- ⚡ **AutoCRUD Engine (In-Memory & GORM DB)**: Generate 5 REST API CRUD endpoints lengkap beserta OpenAPI spec-nya untuk Memory Repo maupun GORM DB (`crud.AutoCRUDGorm[T]`).
 - 📖 **Comprehensive OpenAPI 3.1 & Swagger UI**: Generasi dokumentasi API otomatis di `/docs` & `/openapi.json` lengkap dengan `Contact`, `License`, `TermsOfService`, dan `SecuritySchemes`.
-- 🔑 **Built-in JWT Package (`hazart/jwt`)**: Penandatanganan (`Sign`) dan verifikasi (`Verify`) token JWT berbasis HMAC-SHA256 bawaan tanpa dependensi pihak ketiga.
-- 🛡️ **Role & Permission Access Control (RBAC)**: Guard middleware declaratif `middleware.RequireRole` & `middleware.RequirePermission` dengan Context Store (`ctx.Set` / `ctx.Get`).
+- ⏱️ **Rate Limiting Middleware**: Token bucket / sliding window rate limiter (`middleware.RateLimiter`) pembatas spam/DDoS per Client IP atau Key.
+- 📡 **Realtime Engine (WebSocket & SSE)**: Support WebSocket Connection Hijacker & Server-Sent Events (`ctx.SSEvent`).
+- 📁 **Storage Abstraction**: Upload file helper (`storage.SaveFile`) dengan validasi ukuran & MIME type.
+- 🚀 **Response Caching Middleware**: Thread-safe GET response cache in-memory (`middleware.Cache`).
+- 🔍 **Distributed Tracing & Structured Logging**: Auto-injection `X-Trace-ID` (`middleware.Tracing`) & JSON logger (`middleware.StructuredLogger`).
+- 🔑 **Built-in JWT Package (`hazart/jwt`)**: Penandatanganan (`Sign`) dan verifikasi (`Verify`) token JWT berbasis HMAC-SHA256 bawaan.
+- 🛡️ **Role & Permission Access Control (RBAC)**: Guard middleware declaratif `middleware.RequireRole` & `middleware.RequirePermission`.
 - 🎯 **Standardized Response Helper**: Envelope JSON sukses dan error yang konsisten (`ctx.Success` & `ctx.Error`).
-- 🚨 **RFC 7807 Problem Details**: Respon error terstruktur (`hazart.NotFound`, `hazart.BadRequest`, `hazart.Unauthorized`, dll).
-- 🛠️ **Hazart CLI Tool**: Binary CLI (`hazart`) untuk scaffolding project baru, controller, dan resource berbasis AutoCRUD (`hazart init`, `hazart make:resource`).
-- 🏗️ **Modular Controller Pattern**: Pemisahan route handler terisolasi via struct controller (`app.MountController`).
-- 🛡️ **Built-in Middlewares**: Termasuk `Logger`, `Recovery`, `CORS`, `BearerAuth`, `RequireRole`, dan `RequirePermission`.
+- 🛠️ **Hazart CLI Tool & DB Generators**: Binary CLI (`hazart`) untuk scaffolding project, controller, resource, migration (`hazart make:migration`), dan seeder (`hazart make:seeder`).
 
 ---
 

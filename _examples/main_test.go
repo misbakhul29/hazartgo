@@ -213,3 +213,20 @@ func TestRequireRole_AccessForbidden(t *testing.T) {
 		t.Fatalf("expected status 403 Forbidden for non-admin role, got %d", rec.Code)
 	}
 }
+
+func TestFeatureController_Validation(t *testing.T) {
+	app := hazart.New(hazart.Config{Title: "Test Features"})
+	featureController := controllers.NewFeatureController()
+	app.MountController("/api/v1/features", featureController)
+
+	// Valid payload
+	body := bytes.NewBufferString(`{"name":"Budi Santoso","email":"budi@example.com","age":25}`)
+	req := httptest.NewRequest("POST", "/api/v1/features/validate", body)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for valid validation request, got %d. Body: %s", rec.Code, rec.Body.String())
+	}
+}

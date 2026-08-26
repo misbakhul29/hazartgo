@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const cliVersion = "v1.2.2"
+const cliVersion = "v1.3.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -73,6 +73,18 @@ func main() {
 
 	case "make:auth", "auth":
 		makeAuth()
+
+	case "make:migration", "migration":
+		if len(os.Args) < 3 {
+			log.Fatal("Usage: hazart make:migration <Name>")
+		}
+		makeMigration(os.Args[2])
+
+	case "make:seeder", "seeder":
+		if len(os.Args) < 3 {
+			log.Fatal("Usage: hazart make:seeder <Name>")
+		}
+		makeSeeder(os.Args[2])
 
 	case "version", "-v", "--version":
 		fmt.Printf("⚡ HazartGo CLI Scaffolding Tool %s\n", cliVersion)
@@ -911,5 +923,50 @@ func getModuleName() string {
 		}
 	}
 	return "app"
+}
+
+func makeMigration(name string) {
+	timestamp := time.Now().Format("20060102150405")
+	filename := fmt.Sprintf("database/migrations/%s_%s.sql", timestamp, toSnakeCase(name))
+
+	content := fmt.Sprintf(`-- Migration: %s
+-- Up
+CREATE TABLE IF NOT EXISTS %s (
+    id VARCHAR(36) PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Down
+-- DROP TABLE IF EXISTS %s;
+`, name, toSnakeCase(name), toSnakeCase(name))
+
+	os.MkdirAll("database/migrations", 0755)
+	os.WriteFile(filename, []byte(content), 0644)
+	fmt.Printf("✅ Migration file created at '%s'!\n", filename)
+}
+
+func makeSeeder(name string) {
+	filename := fmt.Sprintf("database/seeders/%s_seeder.go", toSnakeCase(name))
+	structName := toPascalCase(name)
+
+	content := fmt.Sprintf(`package seeders
+
+import (
+	"log"
+)
+
+type %sSeeder struct{}
+
+func (s *%sSeeder) Run() error {
+	log.Println("🌱 Seeding %s...")
+	// TODO: Add database seeder logic here
+	return nil
+}
+`, structName, structName, structName)
+
+	os.MkdirAll("database/seeders", 0755)
+	os.WriteFile(filename, []byte(content), 0644)
+	fmt.Printf("✅ Seeder file created at '%s'!\n", filename)
 }
 
