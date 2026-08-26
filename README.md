@@ -275,11 +275,15 @@ hazart make:resource Product --group "/api/v1"
 # 📄 controllers/product_controller.go
 ```
 
-#### 3. Generate Controller & Route Handler Manual
+#### 3. Generate Controller (Standard / GORM AutoCRUD DB)
 ```bash
+# Standard Controller
 hazart make:controller Payment --group "/api/v1"
+
+# Controller dengan GORM DB AutoCRUD Enabled
+hazart make:controller Product --group "/api/v1" --withDB
 # Menghasilkan:
-# 📄 controllers/payment_controller.go
+# 📄 controllers/product_controller.go (terpasang GORM DB AutoCRUD Engine)
 ```
 
 #### 4. Scaffold JWT Authentication Flow

@@ -39,11 +39,12 @@ func main() {
 
 	case "make:controller", "controller":
 		if len(os.Args) < 3 {
-			log.Fatal("Usage: hazart make:controller <Name> [--group <prefix>]")
+			log.Fatal("Usage: hazart make:controller <Name> [--group <prefix>] [--withDB]")
 		}
 		name := os.Args[2]
 		group := parseFlag("--group", "/api/v1")
-		makeController(name, group)
+		withDB := hasFlag("--withDB", "--with-db", "--db")
+		makeController(name, group, withDB)
 
 	case "make:resource", "resource":
 		if len(os.Args) < 3 {
@@ -235,6 +236,7 @@ Aliases:
 
 Flags:
   --group <prefix>    Specify route group prefix (default: /api/v1)
+  --withDB, --db      Scaffold controller with GORM DB connection & AutoCRUD
   --version, -v       Display HazartGo CLI version
   --help, -h          Display CLI help documentation
 `, cliVersion)
@@ -247,6 +249,17 @@ func parseFlag(flagName string, defaultValue string) string {
 		}
 	}
 	return defaultValue
+}
+
+func hasFlag(flagNames ...string) bool {
+	for _, arg := range os.Args {
+		for _, name := range flagNames {
+			if strings.EqualFold(arg, name) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func toSnakeCase(s string) string {
@@ -522,16 +535,62 @@ func main() {
 	fmt.Println("   go run main.go")
 }
 
-func makeController(name string, group string) {
+func makeController(name string, group string, withDB bool) {
 	pascalName := toPascalCase(name)
 	snakeName := toSnakeCase(pascalName)
 	filename := fmt.Sprintf("controllers/%s_controller.go", snakeName)
+	modName := getModuleName()
 
-	content := fmt.Sprintf(`package controllers
+	var content string
+	if withDB {
+		content = fmt.Sprintf(`package controllers
 
 import (
 	hazart "github.com/misbakhul29/hazartgo"
-	"github.com/misbakhul29/hazartgo/middleware"
+	"github.com/misbakhul29/hazartgo/crud"
+	"%s/models"
+	"gorm.io/gorm"
+)
+
+type %sController struct {
+	db *gorm.DB
+}
+
+func New%sController(db ...*gorm.DB) *%sController {
+	c := &%sController{}
+	if len(db) > 0 {
+		c.db = db[0]
+	}
+	return c
+}
+
+func (c *%sController) RegisterRoutes(g *hazart.Group) {
+	if c.db != nil {
+		// Real DB GORM AutoCRUD (GET, GET/:id, POST, PUT/:id, DELETE/:id)
+		crud.AutoCRUDGorm[models.%s](g, "", c.db)
+		return
+	}
+
+	// Manual/Custom Route Handler
+	hazart.GroupGet(g, "/ping", c.Ping, hazart.RouteMeta{
+		Summary: "Ping %s",
+		Tags:    []string{"%s"},
+	})
+}
+
+type %sPingRes struct {
+	Message string ` + "`json:\"message\" doc:\"Ping response\"`" + `
+}
+
+func (c *%sController) Ping(ctx *hazart.Context, req *struct{}) (*%sPingRes, error) {
+	return &%sPingRes{Message: "pong from %sController"}, nil
+}
+`, modName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName)
+	} else {
+		content = fmt.Sprintf(`package controllers
+
+import (
+	hazart "github.com/misbakhul29/hazartgo"
 )
 
 type %sController struct{}
@@ -541,7 +600,7 @@ func New%sController() *%sController {
 }
 
 func (c *%sController) RegisterRoutes(g *hazart.Group) {
-	// Example Role Authorization Middleware:
+	// Example Authorization Guard:
 	// g.Use(middleware.RequireRole("admin"))
 
 	hazart.GroupGet(g, "/ping", c.Ping, hazart.RouteMeta{
@@ -550,19 +609,24 @@ func (c *%sController) RegisterRoutes(g *hazart.Group) {
 	})
 }
 
-type PingRes struct {
+type %sPingRes struct {
 	Message string ` + "`json:\"message\" doc:\"Ping response\"`" + `
 }
 
-func (c *%sController) Ping(ctx *hazart.Context, req *struct{}) (*PingRes, error) {
-	return &PingRes{Message: "pong from %sController"}, nil
+func (c *%sController) Ping(ctx *hazart.Context, req *struct{}) (*%sPingRes, error) {
+	return &%sPingRes{Message: "pong from %sController"}, nil
 }
-`, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName)
+`, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName, pascalName)
+	}
 
 	os.MkdirAll("controllers", 0755)
 	os.WriteFile(filename, []byte(content), 0644)
 	fmt.Printf("✅ Controller created at '%s'!\n", filename)
-	fmt.Printf("📌 Mount it in main.go with: app.MountController(\"%s\", controllers.New%sController())\n", group, pascalName)
+	if withDB {
+		fmt.Printf("📌 Mount it in main.go with: app.MountController(\"%s\", controllers.New%sController(db))\n", group, pascalName)
+	} else {
+		fmt.Printf("📌 Mount it in main.go with: app.MountController(\"%s\", controllers.New%sController())\n", group, pascalName)
+	}
 }
 
 func makeResource(name string, group string) {
