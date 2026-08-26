@@ -221,24 +221,37 @@ func printUsage() {
 Usage:
   hazart <command> [arguments] [flags]
 
-Commands:
-  init <project_name>                Initialize a new HazartGo backend project
-  make:controller <Name> [--group]   Generate a Controller struct & route handlers
-  make:resource <Name> [--group]     Generate complete Model + Repository + AutoCRUD Controller
-  make:model <Name>                  Generate a new DB/OpenAPI Model struct
-  make:repository <Name>             Generate a new Repository interface & memory store
-  make:middleware <Name>             Generate a new custom Middleware handler
-  make:auth                          Scaffold JWT Authentication Controller
-  update                             Automatically upgrade HazartGo CLI & project library
+Available Commands:
+  init <project_name>                Initialize a full HazartGo backend project structure
+  make:controller <Name>             Generate Controller struct with route handlers & OpenAPI metadata
+  make:resource <Name>               Generate 1-click full stack: Model + Repository + AutoCRUD Controller
+  make:model <Name>                  Generate a new DB & OpenAPI spec Model struct
+  make:repository <Name>             Generate Repository interface & thread-safe in-memory store
+  make:middleware <Name>             Generate a new custom Middleware handler function
+  make:auth                          Scaffold JWT Authentication Controller with login & token generation
+  make:migration <Name>              Generate a new database migration file (up/down schema)
+  make:seeder <Name>                 Generate a new database seeder file for initial data
+  update                             Automatically upgrade Hazart CLI & project hazartgo library to @latest
+  version                            Display HazartGo CLI version
+  help                               Display HazartGo CLI help & command usage
 
-Aliases:
-  controller, resource, model, repository, middleware, auth
+Command Aliases:
+  controller, resource, model, repository, middleware, auth, migration, seeder
 
 Flags:
-  --group <prefix>    Specify route group prefix (default: /api/v1)
-  --withDB, --db      Scaffold controller with GORM DB connection & AutoCRUD
-  --version, -v       Display HazartGo CLI version
-  --help, -h          Display CLI help documentation
+  --group <prefix>                   Specify route group prefix for controllers (default: /api/v1)
+  --withDB, --db                     Scaffold controller with GORM DB connection & AutoCRUD enabled
+  --version, -v                      Display HazartGo CLI version
+  --help, -h                         Display HazartGo CLI help documentation
+
+Examples:
+  hazart init my-backend-app
+  hazart make:controller Payment --group "/api/v1"
+  hazart make:controller Product --group "/api/v1" --withDB
+  hazart make:resource Article --group "/api/v1"
+  hazart make:migration CreateUsersTable
+  hazart make:seeder UserSeeder
+  hazart update
 `, cliVersion)
 }
 
