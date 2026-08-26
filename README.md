@@ -142,6 +142,52 @@ if err != nil {
 
 ---
 
+## 🗄️ Database Connection & Auto-Migration (`hazart.OpenDB`)
+
+HazartGo menyediakan helper koneksi database & auto-migration tingkat tinggi berbasis GORM (mendukung **PostgreSQL**, **MySQL**, dan **SQLite** *CGO-free*):
+
+```go
+import (
+    hazart "github.com/misbakhul29/hazartgo"
+    "github.com/misbakhul29/hazartgo/crud"
+)
+
+func main() {
+    app := hazart.New(hazart.Config{Title: "My Database App"})
+
+    // 1. Koneksi & Auto-Migrate Schema sekaligus
+    db, err := hazart.OpenDB(hazart.DBConfig{
+        Driver:      "postgres", // "postgres", "mysql", atau "sqlite"
+        Host:        "localhost",
+        Port:        5432,
+        User:        "postgres",
+        Password:    "secret",
+        DBName:      "my_db",
+        AutoMigrate: []any{&models.User{}, &models.Product{}},
+    })
+    if err != nil {
+        log.Fatalf("Gagal terhubung ke database: %v", err)
+    }
+
+    // 2. Inject DB Instance ke Controller / Repository
+    productController := controllers.NewProductController(db)
+    app.MountController("/api/v1/products", productController)
+
+    app.Listen(":8080")
+}
+```
+
+### AutoCRUD Controller dengan GORM DB (`crud.AutoCRUDGorm`):
+
+```go
+func (pc *ProductController) RegisterRoutes(g *hazart.Group) {
+    // Otomatis daftarkan 5 REST API CRUD endpoints berbasis Real Database (GORM)
+    crud.AutoCRUDGorm[models.Product](g, "", pc.db)
+}
+```
+
+---
+
 ## 🛡️ Role & Permission Access Control (RBAC)
 
 Memproteksi route berdasarkan **Role** atau **Permission** pengguna menggunakan Context Store (`ctx.Set` & `ctx.Get`):
