@@ -135,22 +135,39 @@ func isNewerVersion(latest, current string) bool {
 
 func fetchLatestRemoteVersion() string {
 	client := http.Client{
-		Timeout: 1500 * time.Millisecond,
+		Timeout: 2000 * time.Millisecond,
 	}
-	resp, err := client.Get("https://proxy.golang.org/github.com/misbakhul29/hazartgo/@latest")
+
+	// 1. Try GitHub API first for instant real-time tag status
+	req, _ := http.NewRequest("GET", "https://api.github.com/repos/misbakhul29/hazartgo/tags", nil)
+	req.Header.Set("User-Agent", "HazartCLI")
+	resp, err := client.Do(req)
+	if err == nil && resp.StatusCode == http.StatusOK {
+		var tags []struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&tags); err == nil && len(tags) > 0 {
+			resp.Body.Close()
+			return tags[0].Name
+		}
+		resp.Body.Close()
+	}
+
+	// 2. Fallback to Go Proxy
+	respProxy, err := client.Get("https://proxy.golang.org/github.com/misbakhul29/hazartgo/@latest")
 	if err != nil {
 		return ""
 	}
-	defer resp.Body.Close()
+	defer respProxy.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if respProxy.StatusCode != http.StatusOK {
 		return ""
 	}
 
 	var data struct {
 		Version string `json:"Version"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+	if err := json.NewDecoder(respProxy.Body).Decode(&data); err != nil {
 		return ""
 	}
 
@@ -170,6 +187,7 @@ func updateHazart() {
 
 	fmt.Println("📦 Upgrading HazartGo CLI tool (go install github.com/misbakhul29/hazartgo/cmd/hazart@latest)...")
 	cmdCLI := exec.Command("go", "install", "github.com/misbakhul29/hazartgo/cmd/hazart@latest")
+	cmdCLI.Env = append(os.Environ(), "GOPROXY=direct")
 	cmdCLI.Stdout = os.Stdout
 	cmdCLI.Stderr = os.Stderr
 	if err := cmdCLI.Run(); err != nil {
@@ -183,6 +201,7 @@ func updateHazart() {
 		if modName != "github.com/misbakhul29/hazartgo" {
 			fmt.Println("\n📦 Upgrading hazartgo library in current project (go get -u github.com/misbakhul29/hazartgo@latest)...")
 			cmdLib := exec.Command("go", "get", "-u", "github.com/misbakhul29/hazartgo@latest")
+			cmdLib.Env = append(os.Environ(), "GOPROXY=direct")
 			cmdLib.Stdout = os.Stdout
 			cmdLib.Stderr = os.Stderr
 			if err := cmdLib.Run(); err == nil {
