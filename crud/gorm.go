@@ -7,39 +7,25 @@ import (
 	"strings"
 
 	"github.com/misbakhul29/hazartgo"
+	"gorm.io/gorm"
 )
 
 // GormRepository is a generic repository implementation backed by GORM with pagination, sorting & search.
 type GormRepository[T any] struct {
-	db any // interface for *gorm.DB to keep soft dependency
+	db *gorm.DB
 }
 
-// GormDBInterface defines minimal required GORM DB methods
-type GormDBInterface interface {
-	Find(dest interface{}, conds ...interface{}) GormDBInterface
-	First(dest interface{}, conds ...interface{}) GormDBInterface
-	Create(value interface{}) GormDBInterface
-	Save(value interface{}) GormDBInterface
-	Delete(value interface{}, conds ...interface{}) GormDBInterface
-	Where(query interface{}, args ...interface{}) GormDBInterface
-	Order(value interface{}) GormDBInterface
-	Limit(limit int) GormDBInterface
-	Offset(offset int) GormDBInterface
-	Error() error
-}
-
-func NewGormRepository[T any](db GormDBInterface) *GormRepository[T] {
+func NewGormRepository[T any](db *gorm.DB) *GormRepository[T] {
 	return &GormRepository[T]{db: db}
 }
 
 func (g *GormRepository[T]) FindAll(ctx *hazart.Context) ([]T, error) {
 	var items []T
-	db, ok := g.db.(GormDBInterface)
-	if !ok {
+	if g.db == nil {
 		return nil, fmt.Errorf("invalid gorm db instance")
 	}
 
-	query := db
+	query := g.db
 
 	// Pagination
 	page, _ := strconv.Atoi(ctx.Query("page"))
@@ -63,14 +49,33 @@ func (g *GormRepository[T]) FindAll(ctx *hazart.Context) ([]T, error) {
 		query = query.Order(fmt.Sprintf("%s %s", sortField, sortOrder))
 	}
 
-	// Search (Parameterized query + LIKE wildcard escaping)
+	// Search (Parameterized query + LIKE wildcard escaping based on struct fields)
 	searchKey := ctx.Query("search")
 	if searchKey != "" {
 		escapedPattern := "%" + sanitizeLikePattern(searchKey) + "%"
-		query = query.Where("name LIKE ? OR title LIKE ?", escapedPattern, escapedPattern)
+		var elem T
+		typ := reflect.TypeOf(elem)
+		if typ.Kind() == reflect.Ptr {
+			typ = typ.Elem()
+		}
+
+		hasName := false
+		hasTitle := false
+		if typ.Kind() == reflect.Struct {
+			_, hasName = typ.FieldByName("Name")
+			_, hasTitle = typ.FieldByName("Title")
+		}
+
+		if hasName && hasTitle {
+			query = query.Where("name LIKE ? OR title LIKE ?", escapedPattern, escapedPattern)
+		} else if hasName {
+			query = query.Where("name LIKE ?", escapedPattern)
+		} else if hasTitle {
+			query = query.Where("title LIKE ?", escapedPattern)
+		}
 	}
 
-	if err := query.Find(&items).Error(); err != nil {
+	if err := query.Find(&items).Error; err != nil {
 		return nil, err
 	}
 	return items, nil
@@ -95,32 +100,29 @@ func sanitizeLikePattern(s string) string {
 
 func (g *GormRepository[T]) FindByID(ctx *hazart.Context, id string) (*T, error) {
 	var item T
-	db, ok := g.db.(GormDBInterface)
-	if !ok {
+	if g.db == nil {
 		return nil, fmt.Errorf("invalid gorm db instance")
 	}
 
-	if err := db.First(&item, "id = ?", id).Error(); err != nil {
+	if err := g.db.First(&item, "id = ?", id).Error; err != nil {
 		return nil, hazart.NotFound("Resource with specified ID not found")
 	}
 	return &item, nil
 }
 
 func (g *GormRepository[T]) Create(ctx *hazart.Context, entity *T) (*T, error) {
-	db, ok := g.db.(GormDBInterface)
-	if !ok {
+	if g.db == nil {
 		return nil, fmt.Errorf("invalid gorm db instance")
 	}
 
-	if err := db.Create(entity).Error(); err != nil {
+	if err := g.db.Create(entity).Error; err != nil {
 		return nil, err
 	}
 	return entity, nil
 }
 
 func (g *GormRepository[T]) Update(ctx *hazart.Context, id string, entity *T) (*T, error) {
-	db, ok := g.db.(GormDBInterface)
-	if !ok {
+	if g.db == nil {
 		return nil, fmt.Errorf("invalid gorm db instance")
 	}
 
@@ -131,7 +133,7 @@ func (g *GormRepository[T]) Update(ctx *hazart.Context, id string, entity *T) (*
 		idField.SetString(id)
 	}
 
-	if err := db.Save(entity).Error(); err != nil {
+	if err := g.db.Save(entity).Error; err != nil {
 		return nil, err
 	}
 	return entity, nil
@@ -139,19 +141,18 @@ func (g *GormRepository[T]) Update(ctx *hazart.Context, id string, entity *T) (*
 
 func (g *GormRepository[T]) Delete(ctx *hazart.Context, id string) error {
 	var entity T
-	db, ok := g.db.(GormDBInterface)
-	if !ok {
+	if g.db == nil {
 		return fmt.Errorf("invalid gorm db instance")
 	}
 
-	if err := db.Delete(&entity, "id = ?", id).Error(); err != nil {
+	if err := g.db.Delete(&entity, "id = ?", id).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-// AutoCRUDGorm registers AutoCRUD endpoints backed by a GORM database interface
-func AutoCRUDGorm[T any](g *hazart.Group, path string, db GormDBInterface) {
+// AutoCRUDGorm registers AutoCRUD endpoints backed by a GORM database instance
+func AutoCRUDGorm[T any](g *hazart.Group, path string, db *gorm.DB) {
 	repo := NewGormRepository[T](db)
 	AutoCRUD[T](g, path, repo)
 }
