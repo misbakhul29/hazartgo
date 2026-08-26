@@ -48,3 +48,24 @@ func TestDBConfigBuildDSN(t *testing.T) {
 		}
 	}
 }
+
+type TestProduct struct {
+	ID   string `gorm:"primaryKey"`
+	Name string
+}
+
+func TestOpenDBAndAutoMigrate(t *testing.T) {
+	db, err := OpenDB(DBConfig{
+		Driver:      "sqlite",
+		File:        ":memory:",
+		AutoMigrate: []any{&TestProduct{}},
+	})
+	if err != nil {
+		t.Fatalf("OpenDB failed: %v", err)
+	}
+
+	if !db.Migrator().HasTable(&TestProduct{}) {
+		t.Errorf("Expected table TestProduct to be created by AutoMigrate")
+	}
+}
+

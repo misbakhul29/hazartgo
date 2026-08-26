@@ -3,6 +3,11 @@ package hazart
 import (
 	"fmt"
 	"strings"
+
+	"github.com/glebarez/sqlite"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // DBConfig holds database connection parameters and auto-migration models
@@ -59,3 +64,52 @@ func (c *DBConfig) BuildDSN() string {
 			host, c.User, c.Password, c.DBName, port, sslmode)
 	}
 }
+
+// OpenDB opens a database connection using GORM based on the provided DBConfig.
+// Driver supports "sqlite", "postgres", and "mysql".
+// If AutoMigrate models are defined in config, it automatically migrates them.
+func OpenDB(config DBConfig) (*gorm.DB, error) {
+	var dialector gorm.Dialector
+
+	switch strings.ToLower(config.Driver) {
+	case "sqlite", "sqlite3":
+		dialector = sqlite.Open(config.BuildDSN())
+	case "postgres", "postgresql":
+		dialector = postgres.Open(config.BuildDSN())
+	case "mysql":
+		dialector = mysql.Open(config.BuildDSN())
+	default:
+		// Default fallback to sqlite if driver is unspecified or sqlite
+		dialector = sqlite.Open(config.BuildDSN())
+	}
+
+	db, err := gorm.Open(dialector, &gorm.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database (%s): %w", config.Driver, err)
+	}
+
+	if len(config.AutoMigrate) > 0 {
+		if err := AutoMigrate(db, config.AutoMigrate...); err != nil {
+			return db, fmt.Errorf("database connected but auto-migration failed: %w", err)
+		}
+	}
+
+	return db, nil
+}
+
+// DatabaseConnection is an alias for OpenDB for developer ergonomics.
+func DatabaseConnection(config DBConfig) (*gorm.DB, error) {
+	return OpenDB(config)
+}
+
+// AutoMigrate migrates schema models for the given GORM DB instance.
+func AutoMigrate(db *gorm.DB, models ...any) error {
+	if db == nil {
+		return fmt.Errorf("gorm db instance is nil")
+	}
+	if len(models) == 0 {
+		return nil
+	}
+	return db.AutoMigrate(models...)
+}
+
