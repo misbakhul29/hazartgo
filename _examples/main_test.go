@@ -14,6 +14,8 @@ import (
 	"github.com/misbakhul29/hazartgo/crud"
 	"github.com/misbakhul29/hazartgo/middleware"
 	"github.com/misbakhul29/hazartgo/openapi"
+	"github.com/glebarez/sqlite"
+	"gorm.io/gorm"
 )
 
 func setupExampleApp() *hazart.App {
@@ -228,5 +230,38 @@ func TestFeatureController_Validation(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200 for valid validation request, got %d. Body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestGormAutoCRUD_RealDatabase(t *testing.T) {
+	app := hazart.New(hazart.Config{Title: "Test GORM AutoCRUD"})
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("failed to connect memory db: %v", err)
+	}
+
+	_ = db.AutoMigrate(&models.Product{})
+
+	api := app.Group("/api/v1")
+	crud.AutoCRUDGorm[models.Product](api, "/gorm-products", db)
+
+	// 1. Create Product via POST /api/v1/gorm-products
+	body := bytes.NewBufferString(`{"name":"Logitech MX Master 3S","price":99.99}`)
+	req := httptest.NewRequest("POST", "/api/v1/gorm-products", body)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 on GORM Create, got %d. Body: %s", rec.Code, rec.Body.String())
+	}
+
+	// 2. Fetch Products via GET /api/v1/gorm-products?search=Logitech
+	reqGet := httptest.NewRequest("GET", "/api/v1/gorm-products?search=Logitech", nil)
+	recGet := httptest.NewRecorder()
+	app.ServeHTTP(recGet, reqGet)
+
+	if recGet.Code != http.StatusOK {
+		t.Fatalf("expected status 200 on GORM List with search, got %d. Body: %s", recGet.Code, recGet.Body.String())
 	}
 }
