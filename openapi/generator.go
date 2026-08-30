@@ -131,7 +131,30 @@ func (g *Generator) RegisterRoute(method, path string, reqType reflect.Type, res
 			reqType = reqType.Elem()
 		}
 		if reqType.Kind() == reflect.Struct {
-			g.processRequestStruct(op, reqType)
+			g.processRequestStruct(op, method, reqType)
+		}
+	}
+
+	// Ensure path parameters in OpenAPI URL pattern (e.g. {id}) are registered in op.Parameters
+	for _, part := range strings.Split(openapiPath, "/") {
+		if strings.HasPrefix(part, "{") && strings.HasSuffix(part, "}") {
+			paramName := part[1 : len(part)-1]
+			alreadyExists := false
+			for _, p := range op.Parameters {
+				if p.In == "path" && p.Name == paramName {
+					alreadyExists = true
+					break
+				}
+			}
+			if !alreadyExists {
+				op.Parameters = append(op.Parameters, Parameter{
+					Name:        paramName,
+					In:          "path",
+					Required:    true,
+					Description: paramName + " identifier",
+					Schema:      &Schema{Type: "string"},
+				})
+			}
 		}
 	}
 
@@ -180,7 +203,7 @@ func convertPathToOpenAPI(path string) string {
 	return strings.Join(parts, "/")
 }
 
-func (g *Generator) processRequestStruct(op *Operation, t reflect.Type) {
+func (g *Generator) processRequestStruct(op *Operation, method string, t reflect.Type) {
 	var bodyProperties = make(map[string]*Schema)
 	var bodyRequired []string
 
@@ -216,6 +239,13 @@ func (g *Generator) processRequestStruct(op *Operation, t reflect.Type) {
 			})
 		} else if jsonTag := field.Tag.Get("json"); jsonTag != "" && jsonTag != "-" {
 			jsonName := strings.Split(jsonTag, ",")[0]
+
+			// For POST, PUT, and PATCH requests, omit ID / primary key field from request body payload
+			// since ID is auto-generated (POST) or provided via URL Path parameter (PUT/PATCH)
+			if (strings.EqualFold(method, "POST") || strings.EqualFold(method, "PUT") || strings.EqualFold(method, "PATCH")) && (strings.EqualFold(jsonName, "id") || strings.EqualFold(field.Name, "id")) {
+				continue
+			}
+
 			bodyProperties[jsonName] = g.typeToSchema(field.Type)
 			if isRequired {
 				bodyRequired = append(bodyRequired, jsonName)

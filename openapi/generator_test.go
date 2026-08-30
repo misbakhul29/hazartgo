@@ -61,3 +61,43 @@ func TestOpenAPI_SliceResponse(t *testing.T) {
 		t.Errorf("expected property 'name' in TestItem schema")
 	}
 }
+
+func TestOpenAPI_PostOmitID(t *testing.T) {
+	gen := openapi.NewGenerator("Test API", "1.0.0")
+
+	// Register POST /items taking TestItem as request body
+	gen.RegisterRoute("POST", "/api/v1/items", reflect.TypeOf(TestItem{}), reflect.TypeOf(TestItem{}), "Create Item", "Create item", []string{"Items"}, "")
+
+	pathItem := gen.Spec.Paths["/api/v1/items"]
+	op := pathItem["post"]
+
+	if op.RequestBody == nil {
+		t.Fatalf("expected request body on POST operation")
+	}
+
+	reqSchema, ok := gen.Spec.Components.Schemas["TestItemRequest"]
+	if !ok {
+		t.Fatalf("expected TestItemRequest in components.schemas")
+	}
+
+	if _, hasID := reqSchema.Properties["id"]; hasID {
+		t.Errorf("expected POST request body schema to omit 'id' property")
+	}
+
+	if _, hasName := reqSchema.Properties["name"]; !hasName {
+		t.Errorf("expected POST request body schema to include 'name' property")
+	}
+
+	// Register PUT /items/:id
+	gen.RegisterRoute("PUT", "/api/v1/items/:id", reflect.TypeOf(TestItem{}), reflect.TypeOf(TestItem{}), "Update Item", "Update item", []string{"Items"}, "")
+	putPathItem := gen.Spec.Paths["/api/v1/items/{id}"]
+	putOp := putPathItem["put"]
+
+	if len(putOp.Parameters) == 0 || putOp.Parameters[0].Name != "id" {
+		t.Errorf("expected path parameter 'id' on PUT operation")
+	}
+
+	if putOp.RequestBody == nil {
+		t.Fatalf("expected request body on PUT operation")
+	}
+}
