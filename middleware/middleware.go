@@ -97,6 +97,11 @@ func CORS(opts ...CORSOptions) hazart.MiddlewareFunc {
 			ctx.SetHeader("Access-Control-Allow-Methods", methods)
 			ctx.SetHeader("Access-Control-Allow-Headers", headers)
 
+			if ctx.Request.Method == http.MethodOptions {
+				ctx.Status(http.StatusNoContent)
+				return
+			}
+
 			next(ctx)
 		}
 	}
