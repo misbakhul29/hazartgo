@@ -233,6 +233,13 @@ func (g *Generator) registerSchema(t reflect.Type) *Schema {
 		t = t.Elem()
 	}
 
+	if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
+		return &Schema{
+			Type:  "array",
+			Items: g.registerSchema(t.Elem()),
+		}
+	}
+
 	if t.Kind() != reflect.Struct {
 		return g.typeToSchema(t)
 	}
@@ -294,8 +301,10 @@ func (g *Generator) typeToSchema(t reflect.Type) *Schema {
 	case reflect.Slice, reflect.Array:
 		return &Schema{
 			Type:  "array",
-			Items: g.typeToSchema(t.Elem()),
+			Items: g.registerSchema(t.Elem()),
 		}
+	case reflect.Struct:
+		return g.registerSchema(t)
 	default:
 		return &Schema{Type: "object"}
 	}
