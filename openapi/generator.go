@@ -131,7 +131,7 @@ func (g *Generator) RegisterRoute(method, path string, reqType reflect.Type, res
 			reqType = reqType.Elem()
 		}
 		if reqType.Kind() == reflect.Struct {
-			g.processRequestStruct(op, method, reqType)
+			g.processRequestStruct(op, method, openapiPath, reqType)
 		}
 	}
 
@@ -203,7 +203,7 @@ func convertPathToOpenAPI(path string) string {
 	return strings.Join(parts, "/")
 }
 
-func (g *Generator) processRequestStruct(op *Operation, method string, t reflect.Type) {
+func (g *Generator) processRequestStruct(op *Operation, method string, openapiPath string, t reflect.Type) {
 	var bodyProperties = make(map[string]*Schema)
 	var bodyRequired []string
 
@@ -214,13 +214,15 @@ func (g *Generator) processRequestStruct(op *Operation, method string, t reflect
 		isRequired := strings.Contains(validateTag, "required")
 
 		if pathTag := field.Tag.Get("path"); pathTag != "" {
-			op.Parameters = append(op.Parameters, Parameter{
-				Name:        pathTag,
-				In:          "path",
-				Required:    true,
-				Description: doc,
-				Schema:      g.typeToSchema(field.Type),
-			})
+			if strings.Contains(openapiPath, "{"+pathTag+"}") {
+				op.Parameters = append(op.Parameters, Parameter{
+					Name:        pathTag,
+					In:          "path",
+					Required:    true,
+					Description: doc,
+					Schema:      g.typeToSchema(field.Type),
+				})
+			}
 		} else if queryTag := field.Tag.Get("query"); queryTag != "" {
 			op.Parameters = append(op.Parameters, Parameter{
 				Name:        queryTag,

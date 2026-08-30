@@ -71,6 +71,10 @@ func TestOpenAPI_PostOmitID(t *testing.T) {
 	pathItem := gen.Spec.Paths["/api/v1/items"]
 	op := pathItem["post"]
 
+	if len(op.Parameters) > 0 {
+		t.Errorf("expected no path parameters on POST /api/v1/items, got %d", len(op.Parameters))
+	}
+
 	if op.RequestBody == nil {
 		t.Fatalf("expected request body on POST operation")
 	}
