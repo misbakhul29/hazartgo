@@ -132,12 +132,12 @@ func AutoCRUD[T any](g *hazart.Group, path string, repo ...Repository[T]) {
 	})
 
 	// 5. DELETE /:id (Delete)
-	hazart.GroupDelete(g, path+"/:id", func(ctx *hazart.Context, req *IDParamReq) (*hazart.Map, error) {
+	hazart.GroupDelete(g, path+"/:id", func(ctx *hazart.Context, req *IDParamReq) (*struct{}, error) {
 		err := repository.Delete(ctx, req.ID)
 		if err != nil {
 			return nil, err
 		}
-		return &hazart.Map{"message": entityName + " deleted successfully"}, nil
+		return nil, nil
 	}, hazart.RouteMeta{
 		Summary:     "Delete " + entityName,
 		Description: "Delete " + entityName + " record by ID",

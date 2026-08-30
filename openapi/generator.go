@@ -136,12 +136,21 @@ func (g *Generator) RegisterRoute(method, path string, reqType reflect.Type, res
 	}
 
 	// Process Response Struct
+	if resType != nil && resType.Kind() == reflect.Ptr {
+		resType = resType.Elem()
+	}
+
+	if resType != nil && resType.Kind() == reflect.Struct && resType.NumField() == 0 {
+		resType = nil
+	}
+
 	if resType != nil {
-		if resType.Kind() == reflect.Ptr {
-			resType = resType.Elem()
-		}
 		schemaRef := g.registerSchema(resType)
-		op.Responses["200"] = Response{
+		status := "200"
+		if strings.EqualFold(method, "DELETE") {
+			status = "204"
+		}
+		op.Responses[status] = Response{
 			Description: "Successful Operation",
 			Content: map[string]MediaType{
 				"application/json": {
@@ -150,7 +159,11 @@ func (g *Generator) RegisterRoute(method, path string, reqType reflect.Type, res
 			},
 		}
 	} else {
-		op.Responses["200"] = Response{Description: "Successful Operation"}
+		if strings.EqualFold(method, "DELETE") {
+			op.Responses["204"] = Response{Description: "Resource deleted successfully"}
+		} else {
+			op.Responses["200"] = Response{Description: "Successful Operation"}
+		}
 	}
 
 	pathItem[strings.ToLower(method)] = op
@@ -233,6 +246,13 @@ func (g *Generator) registerSchema(t reflect.Type) *Schema {
 		t = t.Elem()
 	}
 
+	if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
+		return &Schema{
+			Type:  "array",
+			Items: g.registerSchema(t.Elem()),
+		}
+	}
+
 	if t.Kind() != reflect.Struct {
 		return g.typeToSchema(t)
 	}
@@ -294,8 +314,10 @@ func (g *Generator) typeToSchema(t reflect.Type) *Schema {
 	case reflect.Slice, reflect.Array:
 		return &Schema{
 			Type:  "array",
-			Items: g.typeToSchema(t.Elem()),
+			Items: g.registerSchema(t.Elem()),
 		}
+	case reflect.Struct:
+		return g.registerSchema(t)
 	default:
 		return &Schema{Type: "object"}
 	}
