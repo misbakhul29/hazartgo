@@ -185,6 +185,10 @@ func Register[Req any, Res any](a *App, method string, path string, handler func
 			return
 		}
 
+		if ctx.written {
+			return
+		}
+
 		if res != nil {
 			ctx.JSON(http.StatusOK, res)
 		} else {

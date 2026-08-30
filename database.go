@@ -71,7 +71,16 @@ func (c *DBConfig) BuildDSN() string {
 func OpenDB(config DBConfig) (*gorm.DB, error) {
 	var dialector gorm.Dialector
 
-	switch strings.ToLower(config.Driver) {
+	driver := strings.ToLower(config.Driver)
+	if driver == "" {
+		if config.File != "" {
+			driver = "sqlite"
+		} else {
+			driver = "postgres"
+		}
+	}
+
+	switch driver {
 	case "sqlite", "sqlite3":
 		dialector = sqlite.Open(config.BuildDSN())
 	case "postgres", "postgresql":
@@ -79,8 +88,7 @@ func OpenDB(config DBConfig) (*gorm.DB, error) {
 	case "mysql":
 		dialector = mysql.Open(config.BuildDSN())
 	default:
-		// Default fallback to sqlite if driver is unspecified or sqlite
-		dialector = sqlite.Open(config.BuildDSN())
+		return nil, fmt.Errorf("unsupported database driver: %s", config.Driver)
 	}
 
 	db, err := gorm.Open(dialector, &gorm.Config{})

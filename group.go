@@ -47,30 +47,14 @@ func GroupRegister[Req any, Res any](g *Group, method string, path string, handl
 
 	// Register to underlying App router with group prefix
 	Register(g.app, method, fullPath, func(ctx *Context, req *Req) (*Res, error) {
+		var outerRes *Res
+		var outerErr error
+
 		// Run Group Middlewares sequentially
 		var chain HandlerFunc = func(c *Context) {
 			res, err := handler(c, req)
-			if err != nil {
-				if apiErr, ok := err.(*APIError); ok {
-					if apiErr.Instance == "" {
-						apiErr.Instance = c.Path
-					}
-					c.JSON(apiErr.Status, apiErr)
-					return
-				}
-
-				c.JSON(500, Map{
-					"status": 500,
-					"title":  "Internal Server Error",
-					"detail": err.Error(),
-				})
-				return
-			}
-			if res != nil {
-				c.JSON(200, res)
-			} else {
-				c.Status(204)
-			}
+			outerRes = res
+			outerErr = err
 		}
 
 		for i := len(g.middlewares) - 1; i >= 0; i-- {
@@ -78,7 +62,7 @@ func GroupRegister[Req any, Res any](g *Group, method string, path string, handl
 		}
 
 		chain(ctx)
-		return nil, nil
+		return outerRes, outerErr
 	}, meta...)
 }
 

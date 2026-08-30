@@ -19,6 +19,7 @@ type Context struct {
 	Method     string
 	Params     map[string]string
 	StatusCode int
+	written    bool
 	store      map[string]any
 }
 
@@ -68,14 +69,20 @@ func (c *Context) Get(key string) (any, bool) {
 // Status sets HTTP response status code.
 func (c *Context) Status(code int) {
 	c.StatusCode = code
-	c.Writer.WriteHeader(code)
+	if !c.written {
+		c.written = true
+		c.Writer.WriteHeader(code)
+	}
 }
 
 // JSON sends a JSON response with status code.
 func (c *Context) JSON(code int, v any) error {
-	c.StatusCode = code
 	c.SetHeader("Content-Type", "application/json")
-	c.Writer.WriteHeader(code)
+	if !c.written {
+		c.StatusCode = code
+		c.written = true
+		c.Writer.WriteHeader(code)
+	}
 	return json.NewEncoder(c.Writer).Encode(v)
 }
 
@@ -106,9 +113,12 @@ func (c *Context) Error(code int, message string, details ...any) error {
 
 // String sends a plain text response.
 func (c *Context) String(code int, format string, values ...any) error {
-	c.StatusCode = code
 	c.SetHeader("Content-Type", "text/plain")
-	c.Writer.WriteHeader(code)
+	if !c.written {
+		c.StatusCode = code
+		c.written = true
+		c.Writer.WriteHeader(code)
+	}
 	_, err := fmt.Fprintf(c.Writer, format, values...)
 	return err
 }
@@ -116,8 +126,11 @@ func (c *Context) String(code int, format string, values ...any) error {
 // HTML sends an HTML response.
 func (c *Context) HTML(code int, html string) error {
 	c.SetHeader("Content-Type", "text/html")
-	c.Writer.WriteHeader(code)
-	c.StatusCode = code
+	if !c.written {
+		c.StatusCode = code
+		c.written = true
+		c.Writer.WriteHeader(code)
+	}
 	_, err := c.Writer.Write([]byte(html))
 	return err
 }
